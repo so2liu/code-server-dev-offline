@@ -19,7 +19,7 @@ services:
       - ./config/entrypoint.sh:/config/entrypoint.sh:ro
 
       # AI 工具配置
-      - ./config/.claude-code-router:/home/coder/.claude-code-router:ro
+      - ./config/.claude-code-router:/home/coder/.claude-code-router
       - ./config/.vscode:/workspace/.vscode:ro
       - ./config/.claude:/workspace/.claude:ro
 

@@ -224,6 +224,32 @@ extra_hosts:
 
 如果遇到问题，请检查构建日志确认模型下载成功。
 
+### CCR 提示 "Read-only file system" 错误？
+
+如果在容器内运行 `ccr ui` 时遇到以下错误：
+
+```
+Failed to create default configuration: ENOENT: no such file or directory, mkdir '/home/coder/.claude-code-router/plugins'
+mkdir: cannot create directory '/home/coder/.claude-code-router/plugins': Read-only file system
+```
+
+这是因为 `.claude-code-router` 目录被挂载为只读。解决方法：
+
+1. 确保 `config/.claude-code-router/plugins` 目录存在：
+   ```bash
+   mkdir -p config/.claude-code-router/plugins
+   ```
+
+2. 在 `docker-compose.yaml` 中移除 `:ro` 标志（已在示例配置中修复）：
+   ```yaml
+   - ./config/.claude-code-router:/home/coder/.claude-code-router
+   ```
+
+3. 重启容器：
+   ```bash
+   docker-compose restart
+   ```
+
 ## 性能优化
 
 本项目使用了 Docker BuildKit 和分层缓存策略，大幅提升构建性能：
