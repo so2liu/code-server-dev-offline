@@ -1,0 +1,37 @@
+services:
+  code-server:
+    image: ghcr.io/so2liu/code-server-dev:latest
+    container_name: code-server-dev
+    privileged: true
+    user: coder
+
+    environment:
+      # CCR (Claude Code Router) 配置
+      - ANTHROPIC_BASE_URL=http://localhost:3456
+      # 请设置您的 API 密钥 (智谱 AI 或其他提供商)
+      - ANTHROPIC_AUTH_TOKEN=sk-your-api-key-here
+
+    volumes:
+      # 配置文件挂载
+      - ./config/config.yaml:/config/config.yaml:ro
+      - ./config/coder.json:/config/coder.json:ro
+      - ./config/workspace.code-workspace:/config/workspace.code-workspace:ro
+      - ./config/entrypoint.sh:/config/entrypoint.sh:ro
+
+      # AI 工具配置
+      - ./config/.claude-code-router:/home/coder/.claude-code-router:ro
+      - ./config/.vscode:/workspace/.vscode:ro
+      - ./config/.claude:/workspace/.claude:ro
+
+      # 工作目录（持久化数据）
+      - ./data:/workspace
+
+    ports:
+      - "8080:8080"   # Code-Server Web IDE
+      - "3456:3456"   # CCR 管理界面
+
+    restart: unless-stopped
+
+    # 可选：主机名映射（用于访问宿主机服务）
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"

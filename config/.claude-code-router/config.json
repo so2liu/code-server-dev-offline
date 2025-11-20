@@ -1,0 +1,33 @@
+{
+  "HOST": "0.0.0.0",
+  "PORT": 3456,
+  "LOG_LEVEL": "debug",
+  "APIKEY": "sk-",
+  "API_TIMEOUT_MS": "600000",
+
+  "Providers": [
+    {
+      "name": "zhipu",
+      "api_base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+      "models": ["glm-4.5"],
+      "transformer": {
+        "use": [
+          ["maxtoken", {"max_tokens": 65536}]
+        ]
+      }
+    },
+    {
+      "name": "openrouter",
+      "api_base_url": "https://openrouter.ai/api/v1",
+      "models": ["z-ai/glm-4.5"]
+    }
+  ],
+
+  "Router": {
+    "default": "zhipu,glm-4.5",
+    "background": "zhipu,glm-4.5",
+    "think": "zhipu,glm-4.5",
+    "longContext": "zhipu,glm-4.5",
+    "longContextThreshold": 60000
+  }
+}

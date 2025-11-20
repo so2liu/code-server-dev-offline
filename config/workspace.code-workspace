@@ -1,0 +1,74 @@
+{
+  "folders": [
+    {
+      "path": "/workspace"
+    }
+  ],
+  "settings": {
+    // Theme
+    "workbench.colorTheme": "Default Dark Modern",
+
+    // Python settings
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.languageServer": "Jedi",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.terminal.activateEnvironment": true,
+
+    // Formatting
+    "[python]": {
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+      }
+    },
+
+    // JavaScript/TypeScript formatting
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+
+    // Editor
+    "editor.rulers": [120],
+    "editor.minimap.enabled": false,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+
+    // Terminal
+    "terminal.integrated.defaultProfile.linux": "bash",
+
+    // Git
+    "git.confirmSync": false,
+    "git.autofetch": true,
+
+    // Claude Code / Cline settings
+    "cline.allowedCommands": ["git log", "git diff", "git show"],
+    "cline.autoApprovalEnabled": true,
+    "cline.alwaysAllowReadOnly": true,
+    "cline.alwaysAllowWrite": false,
+
+    // Files to exclude
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/.pytest_cache": true,
+      "**/.ruff_cache": true,
+      "**/node_modules": true
+    }
+  }
+}

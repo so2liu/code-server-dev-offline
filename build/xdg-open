@@ -1,0 +1,6 @@
+#!/bin/bash
+# Dummy xdg-open script for code-server environment
+# Prevents errors when extensions try to open URLs
+
+echo "xdg-open: $@"
+exit 0

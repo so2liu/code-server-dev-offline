@@ -1,0 +1,8 @@
+#!/bin/bash
+# Wrapper script to use uv instead of pip
+
+# Source uv environment
+. ${HOME}/.local/bin/env
+
+# Forward all arguments to uv pip
+uv pip "$@"
