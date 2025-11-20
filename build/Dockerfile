@@ -92,6 +92,8 @@ COPY pyproject.toml /tmp/build/pyproject.toml
 # 使用缓存挂载加速下载
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     cd /tmp/build && \
+    # 创建临时 README 以满足 hatchling 的要求
+    echo "# code-server-dev" > README.md && \
     # 导出主依赖到 requirements.txt
     uv export --no-hashes --no-dev -o requirements.txt && \
     # 导出开发依赖到 requirements-dev.txt
