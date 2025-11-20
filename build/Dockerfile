@@ -70,7 +70,7 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version=${CODE_SE
 # 这一层较少变化，可以充分利用缓存
 # ============================================
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router
+    npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router opencode-ai
 
 # ============================================
 # 阶段6: 安装 uv
@@ -118,7 +118,8 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
 
 # ============================================
 # 阶段8: 下载 TikToken 模型（离线支持）
-# 这一层只在需要时运行一次
+# 需要在 Python 依赖安装后运行，因为脚本依赖 tiktoken 包
+# 但放在 VSCode 插件之前，这样插件变化时不会重新下载
 # ============================================
 COPY download-tiktoken-models.py /tmp/download-tiktoken-models.py
 RUN python3 /tmp/download-tiktoken-models.py && \
