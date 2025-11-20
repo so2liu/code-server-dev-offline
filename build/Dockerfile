@@ -133,7 +133,19 @@ COPY xdg-open /usr/local/bin/
 RUN chmod +x /usr/local/bin/xdg-open
 
 # ============================================
-# 阶段10: 切换到 coder 用户并安装 VSCode 插件
+# 阶段10: 打包项目文档（离线环境支持）
+# 将整个项目（除了 .git）打包到镜像中，方便离线查看
+# ============================================
+COPY --chown=root:root . /tmp/code-server-docs/
+RUN cd /tmp/code-server-docs && \
+    rm -rf .git .gitignore .github && \
+    mkdir -p /opt/docs && \
+    tar czf /opt/docs/code-server-dev-docs.tar.gz . && \
+    rm -rf /tmp/code-server-docs && \
+    chmod 644 /opt/docs/code-server-dev-docs.tar.gz
+
+# ============================================
+# 阶段11: 切换到 coder 用户并安装 VSCode 插件
 # 关键优化：先复制插件列表，只有它变化时才重新安装插件
 # ============================================
 USER coder

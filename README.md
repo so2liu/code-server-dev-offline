@@ -18,7 +18,9 @@
   - CCR (Claude Code Router) - 支持多 AI 提供商路由
   - 默认配置智谱 AI
 - **Python 依赖**: LangChain, FastAPI, MCP, Claude SDK 等完整 AI 开发工具链
-- **离线支持**: 预下载 TikToken 模型，确保完全离线环境可用
+- **离线支持**:
+  - 预下载 TikToken 模型，确保完全离线环境可用
+  - 内置完整项目文档（`/opt/docs/code-server-dev-docs.tar.gz`），方便离线查阅
 - **构建优化**: 使用 Docker BuildKit 缓存，大幅提升重复构建速度
 
 ## 快速开始
@@ -176,6 +178,33 @@ VSCode 已预配置 4 种调试场景：
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+## 离线环境使用
+
+### 访问内置文档
+
+镜像中已内置完整的项目文档，位于 `/opt/docs/code-server-dev-docs.tar.gz`。
+
+在容器内解压查看：
+
+```bash
+# 进入容器
+docker exec -it code-server-dev bash
+
+# 解压文档到临时目录
+mkdir -p ~/docs
+cd ~/docs
+tar xzf /opt/docs/code-server-dev-docs.tar.gz
+
+# 查看文档
+cat README.md
+```
+
+文档包含：
+- README.md - 完整使用说明
+- build/ - Dockerfile 和构建脚本
+- config/ - 配置文件示例
+- docker-compose.example.yaml - Docker Compose 配置示例
 
 ## 常见问题
 

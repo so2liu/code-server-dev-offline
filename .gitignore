@@ -20,10 +20,17 @@ docker-compose.yaml
 data/*
 !data/.gitkeep
 
+# Workspace directory
+workspace/
+
 # Temporary files
 *.tmp
 *.swp
 *~
+
+# CCR (Claude Code Router) runtime files
+config/.claude-code-router/*.pid
+config/.claude-code-router/*.bak
 
 # Python
 __pycache__/
