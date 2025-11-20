@@ -70,7 +70,7 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version=${CODE_SE
 # 这一层较少变化，可以充分利用缓存
 # ============================================
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router
+    npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router @cline/cli
 
 # ============================================
 # 阶段6: 安装 uv
