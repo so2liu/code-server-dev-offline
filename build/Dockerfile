@@ -86,38 +86,22 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 # ============================================
 
 # 复制 Python 依赖配置文件
-COPY pyproject.toml /tmp/pyproject.toml
+COPY pyproject.toml /tmp/build/pyproject.toml
 
-# 安装依赖（使用缓存挂载加速下载）
-# 先从 pyproject.toml 安装，uv 会自动处理依赖
+# 从 pyproject.toml 生成 requirements 并安装
+# 使用缓存挂载加速下载
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
-    cd /tmp && \
+    cd /tmp/build && \
+    # 导出主依赖到 requirements.txt
+    uv export --no-hashes --no-dev -o requirements.txt && \
+    # 导出开发依赖到 requirements-dev.txt
+    uv export --no-hashes --only-dev -o requirements-dev.txt && \
+    # 安装所有依赖
     uv pip install --system --break-system-packages \
-    loguru==0.7.3 \
-    matplotlib==3.10.1 \
-    fastapi==0.115.11 \
-    uvicorn==0.34.0 \
-    langchain-openai==0.3.9 \
-    langchain==0.3.9 \
-    langgraph==0.3.16 \
-    pydantic[email]==2.10.6 \
-    pydantic-settings==2.8.1 \
-    sqlmodel>=0.0.24 \
-    psycopg2-binary>=2.9.10 \
-    asyncpg>=0.30.0 \
-    mcp[cli]>=1.9.1 \
-    langchain-mcp-adapters>=0.1.7 \
-    claude-code-sdk>=0.0.17 \
-    httpx[socks]>=0.28.1 \
-    minio>=7.2.15 \
-    langfuse>=3.1.3 \
-    fastmcp>=2.9.2 \
-    ipykernel>=6.29.5 \
-    debugpy>=1.8.0 \
-    pytest>=8.4.1 \
-    pytest-asyncio>=1.0.0 \
-    ruff>=0.11.6 \
-    && rm -rf /tmp/pyproject.toml
+    -r requirements.txt \
+    -r requirements-dev.txt && \
+    # 清理
+    rm -rf /tmp/build
 
 # ============================================
 # 阶段8: 下载 TikToken 模型（离线支持）

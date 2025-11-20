@@ -81,11 +81,17 @@ DOCKER_BUILDKIT=1 docker build -t code-server-dev:latest .
 **示例**:
 ```dockerfile
 # 先复制依赖配置文件
-COPY pyproject.toml /tmp/pyproject.toml
+COPY pyproject.toml /tmp/build/pyproject.toml
 
 # 再安装依赖（只有 pyproject.toml 变化时才重新运行）
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system -r /tmp/pyproject.toml
+# 使用 uv export 从 pyproject.toml 生成 requirements 文件
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    cd /tmp/build && \
+    uv export --no-hashes --no-dev -o requirements.txt && \
+    uv export --no-hashes --only-dev -o requirements-dev.txt && \
+    uv pip install --system --break-system-packages \
+    -r requirements.txt -r requirements-dev.txt && \
+    rm -rf /tmp/build
 ```
 
 **效果**:
