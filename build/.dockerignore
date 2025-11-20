@@ -1,0 +1,44 @@
+# Git files
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+!README.md
+
+# Data and cache directories
+data/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (we only need specific files)
+docker-compose*.yaml
+.dockerignore
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*

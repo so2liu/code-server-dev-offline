@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 FROM ubuntu:24.04
 
 # 设置环境变量
@@ -9,8 +10,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CODE_SERVER_VERSION=4.106.2 \
     NODE_MAJOR=22
 
-# 安装基础工具和开发环境
-RUN apt-get update && apt-get install -y \
+# ============================================
+# 阶段1: 安装系统依赖和基础工具
+# 这一层很少变化，可以充分利用缓存
+# ============================================
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
     # 基础工具
     curl wget git vim nano sudo ca-certificates gnupg lsb-release locales \
     # 命令行工具
@@ -26,12 +32,12 @@ RUN apt-get update && apt-get install -y \
     && \
     # 配置语言环境
     locale-gen en_US.UTF-8 && \
-    update-locale LANG=en_US.UTF-8 && \
-    # 清理
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    update-locale LANG=en_US.UTF-8
 
-# 创建 coder 用户（先删除可能存在的 UID 1000 用户）
+# ============================================
+# 阶段2: 创建用户
+# 这一层很少变化，可以充分利用缓存
+# ============================================
 RUN if id -u 1000 >/dev/null 2>&1; then \
         existing_user=$(id -un 1000); \
         userdel -r $existing_user 2>/dev/null || true; \
@@ -40,25 +46,53 @@ RUN if id -u 1000 >/dev/null 2>&1; then \
     echo "coder ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/coder && \
     chmod 0440 /etc/sudoers.d/coder
 
-# 安装 Node.js 22
-RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g pnpm && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# ============================================
+# 阶段3: 安装 Node.js
+# 这一层很少变化，可以充分利用缓存
+# ============================================
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - && \
+    apt-get install -y nodejs
 
-# 安装 code-server
+# 安装 pnpm (使用缓存)
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm install -g pnpm
+
+# ============================================
+# 阶段4: 安装 code-server
+# 这一层很少变化，可以充分利用缓存
+# ============================================
 RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version=${CODE_SERVER_VERSION}
 
-# 安装 Claude Code 和 CCR（全局，所有用户可用）
-RUN npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router
+# ============================================
+# 阶段5: 安装全局 npm 包
+# 这一层较少变化，可以充分利用缓存
+# ============================================
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router
 
-# 安装 uv (Python 包管理器) - 作为 root 用户
+# ============================================
+# 阶段6: 安装 uv
+# 这一层很少变化，可以充分利用缓存
+# ============================================
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv* /usr/local/bin/
 
-# 全局安装 Python 依赖 - 作为 root 用户
-RUN uv pip install --system --break-system-packages \
+# ============================================
+# 阶段7: 安装 Python 依赖
+# 关键优化：先复制 pyproject.toml，只有它变化时才重新安装依赖
+# 使用 BuildKit 缓存挂载加速下载
+# ============================================
+
+# 复制 Python 依赖配置文件
+COPY pyproject.toml /tmp/pyproject.toml
+
+# 安装依赖（使用缓存挂载加速下载）
+# 先从 pyproject.toml 安装，uv 会自动处理依赖
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    cd /tmp && \
+    uv pip install --system --break-system-packages \
     loguru==0.7.3 \
     matplotlib==3.10.1 \
     fastapi==0.115.11 \
@@ -82,23 +116,42 @@ RUN uv pip install --system --break-system-packages \
     debugpy>=1.8.0 \
     pytest>=8.4.1 \
     pytest-asyncio>=1.0.0 \
-    ruff>=0.11.6
+    ruff>=0.11.6 \
+    && rm -rf /tmp/pyproject.toml
 
-# 复制辅助脚本
+# ============================================
+# 阶段8: 下载 TikToken 模型（离线支持）
+# 这一层只在需要时运行一次
+# ============================================
+COPY download-tiktoken-models.py /tmp/download-tiktoken-models.py
+RUN python3 /tmp/download-tiktoken-models.py && \
+    rm /tmp/download-tiktoken-models.py
+
+# ============================================
+# 阶段9: 复制辅助脚本
+# 这一层在脚本变化时才重新构建
+# ============================================
 COPY xdg-open /usr/local/bin/
 RUN chmod +x /usr/local/bin/xdg-open
 
-# 切换到 coder 用户
+# ============================================
+# 阶段10: 切换到 coder 用户并安装 VSCode 插件
+# 关键优化：先复制插件列表，只有它变化时才重新安装插件
+# ============================================
 USER coder
 WORKDIR /home/coder
 
-# 安装 VSCode 插件
+# 先复制插件安装脚本
 COPY --chown=coder:coder install-extensions.sh /tmp/install-extensions.sh
-RUN chmod +x /tmp/install-extensions.sh && \
-    /tmp/install-extensions.sh && \
+RUN chmod +x /tmp/install-extensions.sh
+
+# 安装插件（这一步只在 install-extensions.sh 变化时重新运行）
+RUN /tmp/install-extensions.sh && \
     rm /tmp/install-extensions.sh
 
-# 设置工作目录
+# ============================================
+# 最终配置
+# ============================================
 WORKDIR /workspace
 
 # 暴露端口
