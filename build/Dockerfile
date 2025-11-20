@@ -70,7 +70,7 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version=${CODE_SE
 # 这一层较少变化，可以充分利用缓存
 # ============================================
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router @cline/cli
+    npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router
 
 # ============================================
 # 阶段6: 安装 uv
@@ -113,7 +113,8 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     debugpy>=1.8.0 \
     pytest>=8.4.1 \
     pytest-asyncio>=1.0.0 \
-    ruff>=0.11.6
+    ruff>=0.11.6 \
+    requests>=2.32.0
 
 # ============================================
 # 阶段8: 下载 TikToken 模型（离线支持）
