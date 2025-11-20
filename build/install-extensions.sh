@@ -32,9 +32,6 @@ EXTENSIONS=(
 
     # Vim
     "vscodevim.vim"
-
-    # Additional Python tools
-    "magicstack.magicpython"
 )
 
 echo "Installing VSCode extensions for code-server..."
