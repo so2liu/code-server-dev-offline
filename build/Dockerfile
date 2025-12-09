@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.4
 FROM ubuntu:24.04
 
 # 设置环境变量
@@ -20,7 +19,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # 基础工具
     curl wget git vim nano sudo ca-certificates gnupg lsb-release locales \
     # 命令行工具
-    htop tree jq zip unzip rsync lsof strace socat \
+    htop tree jq yq zip unzip bzip2 xz-utils rsync lsof strace socat \
     # 网络工具
     net-tools iputils-ping dnsutils telnet traceroute netcat-openbsd \
     # C/C++ 编译工具链
@@ -28,77 +27,60 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # Python 环境
     python3 python3-pip python3-dev python3-venv \
     # 其他工具
-    man-db pandoc dumb-init \
+    man-db pandoc dumb-init openssh-client \
     && \
     # 配置语言环境
     locale-gen en_US.UTF-8 && \
     update-locale LANG=en_US.UTF-8
 
 # ============================================
-# 阶段2: 创建用户
-# 这一层很少变化，可以充分利用缓存
-# ============================================
-RUN if id -u 1000 >/dev/null 2>&1; then \
-        existing_user=$(id -un 1000); \
-        userdel -r $existing_user 2>/dev/null || true; \
-    fi && \
-    useradd -m -s /bin/bash -u 1000 coder && \
-    echo "coder ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/coder && \
-    chmod 0440 /etc/sudoers.d/coder
-
-# ============================================
-# 阶段3: 安装 Node.js
-# 这一层很少变化，可以充分利用缓存
+# 阶段2: 安装 Node.js
 # ============================================
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - && \
     apt-get install -y nodejs
 
-# 安装 pnpm (使用缓存)
+# 安装 pnpm
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm install -g pnpm
 
 # ============================================
-# 阶段4: 安装 code-server
-# 这一层很少变化，可以充分利用缓存
+# 阶段3: 安装 code-server
 # ============================================
 RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version=${CODE_SERVER_VERSION}
 
 # ============================================
-# 阶段5: 安装全局 npm 包
-# 这一层较少变化，可以充分利用缓存
+# 阶段4: 安装全局 npm 包
 # ============================================
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router opencode-ai
 
 # ============================================
-# 阶段6: 安装 uv
-# 这一层很少变化，可以充分利用缓存
+# 阶段5: 安装 uv
 # ============================================
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv* /usr/local/bin/
 
 # ============================================
-# 阶段7: 安装 Python 依赖
-# 关键优化：先复制 pyproject.toml，只有它变化时才重新安装依赖
-# 使用 BuildKit 缓存挂载加速下载
+# 阶段6: 安装 Python 依赖
 # ============================================
-
-# 安装 Python 依赖
-# 使用缓存挂载加速下载
-# 注意：这里直接列出依赖，这样当依赖变化时只重新安装这一层
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv pip install --system --break-system-packages \
     loguru==0.7.3 \
     matplotlib==3.10.1 \
+    pyproj==3.7.1 \
     fastapi==0.115.11 \
     uvicorn==0.34.0 \
+    jsonschema==4.23.0 \
     langchain-openai==0.3.9 \
     langchain==0.3.9 \
     langgraph==0.3.16 \
+    prompt-toolkit==3.0.50 \
     pydantic[email]==2.10.6 \
     pydantic-settings==2.8.1 \
+    pyyaml==6.0.2 \
+    rich==13.9.4 \
     sqlmodel>=0.0.24 \
     psycopg2-binary>=2.9.10 \
     asyncpg>=0.30.0 \
@@ -109,6 +91,26 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     minio>=7.2.15 \
     langfuse>=3.1.3 \
     fastmcp>=2.9.2 \
+    itsdangerous>=2.2.0 \
+    passlib>=1.7.4 \
+    chardet>=5.2.0 \
+    langgraph-checkpoint-sqlite>=2.0.10 \
+    aiofiles>=24.1.0 \
+    grandalf>=0.8 \
+    python-jose>=3.5.0 \
+    openapi-pydantic>=0.5.1 \
+    pyjwt>=2.10.1 \
+    json-repair>=0.47.6 \
+    httpx-sse>=0.4.0 \
+    psutil>=6.1.0 \
+    sentry-sdk>=2.34.1 \
+    python-socketio[asyncio]==5.11.4 \
+    jinja2>=3.1.6 \
+    cachetools>=6.2.0 \
+    openapi-python-client>=0.21.6 \
+    pandoc>=2.4 \
+    pypandoc>=1.13 \
+    python-docx>=1.1.2 \
     ipykernel>=6.29.5 \
     debugpy>=1.8.0 \
     pytest>=8.4.1 \
@@ -117,26 +119,22 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     requests>=2.32.0
 
 # ============================================
-# 阶段8: 下载 TikToken 模型（离线支持）
-# 需要在 Python 依赖安装后运行，因为脚本依赖 tiktoken 包
-# 但放在 VSCode 插件之前，这样插件变化时不会重新下载
+# 阶段7: 下载 TikToken 模型（离线支持）
 # ============================================
 COPY download-tiktoken-models.py /tmp/download-tiktoken-models.py
 RUN python3 /tmp/download-tiktoken-models.py && \
     rm /tmp/download-tiktoken-models.py
 
 # ============================================
-# 阶段9: 复制辅助脚本
-# 这一层在脚本变化时才重新构建
+# 阶段8: 复制辅助脚本
 # ============================================
-COPY xdg-open /usr/local/bin/
-RUN chmod +x /usr/local/bin/xdg-open
+COPY xdg-open pip /usr/local/bin/
+RUN chmod +x /usr/local/bin/xdg-open /usr/local/bin/pip
 
 # ============================================
-# 阶段10: 打包项目文档（离线环境支持）
-# 将整个项目（除了 .git）打包到镜像中，方便离线查看
+# 阶段9: 打包项目文档（离线环境支持）
 # ============================================
-COPY --chown=root:root . /tmp/code-server-docs/
+COPY . /tmp/code-server-docs/
 RUN cd /tmp/code-server-docs && \
     rm -rf .git .gitignore .github && \
     mkdir -p /opt/docs && \
@@ -145,18 +143,11 @@ RUN cd /tmp/code-server-docs && \
     chmod 644 /opt/docs/code-server-dev-docs.tar.gz
 
 # ============================================
-# 阶段11: 切换到 coder 用户并安装 VSCode 插件
-# 关键优化：先复制插件列表，只有它变化时才重新安装插件
+# 阶段10: 安装 VSCode 插件
 # ============================================
-USER coder
-WORKDIR /home/coder
-
-# 先复制插件安装脚本
-COPY --chown=coder:coder install-extensions.sh /tmp/install-extensions.sh
-RUN chmod +x /tmp/install-extensions.sh
-
-# 安装插件（这一步只在 install-extensions.sh 变化时重新运行）
-RUN /tmp/install-extensions.sh && \
+COPY install-extensions.sh /tmp/install-extensions.sh
+RUN chmod +x /tmp/install-extensions.sh && \
+    /tmp/install-extensions.sh && \
     rm /tmp/install-extensions.sh
 
 # ============================================
