@@ -205,7 +205,7 @@ RUN chmod +x /tmp/install-extensions.sh && \
 # 阶段11: 配置 code-server user settings
 # ============================================
 RUN mkdir -p /root/.local/share/code-server/User && \
-    echo '{"vim.enable": false}' > /root/.local/share/code-server/User/settings.json
+    echo '{"vim.disableExtension": true}' > /root/.local/share/code-server/User/settings.json
 
 # ============================================
 # 最终配置
