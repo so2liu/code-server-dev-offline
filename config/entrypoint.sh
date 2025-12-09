@@ -3,10 +3,10 @@ set -eu
 
 echo "Starting Code-Server development environment..."
 
-# Initialize uv
-if [ -s "/home/coder/.local/bin/env" ]; then
-    echo "Loading uv environment..."
-    . /home/coder/.local/bin/env
+# Initialize nvm (for compatibility with blade-code-server users)
+if [ -s "/root/.nvm/nvm.sh" ]; then
+    echo "Loading nvm environment..."
+    . /root/.nvm/nvm.sh
 fi
 
 # Start CCR (Claude Code Router) in background
@@ -23,7 +23,7 @@ echo "Access CCR UI at: http://localhost:3456/ui"
 echo "Starting code-server..."
 exec code-server \
     --bind-addr 0.0.0.0:8080 \
-    --config /config/config.yaml \
-    --user-data-dir /home/coder/.local/share/code-server \
-    --extensions-dir /home/coder/.local/share/code-server/extensions \
+    --config /root/.config/code-server/config.yaml \
+    --user-data-dir /root/.local/share/code-server \
+    --extensions-dir /root/.local/share/code-server/extensions \
     /workspace

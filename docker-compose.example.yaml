@@ -11,16 +11,8 @@ services:
       - ANTHROPIC_AUTH_TOKEN=sk-your-api-key-here
 
     volumes:
-      # 配置文件挂载
-      - ./config/config.yaml:/config/config.yaml:ro
-      - ./config/coder.json:/config/coder.json:ro
-      - ./config/workspace.code-workspace:/config/workspace.code-workspace:ro
-      - ./config/entrypoint.sh:/config/entrypoint.sh:ro
-
-      # AI 工具配置
-      - ./config/.claude-code-router:/root/.claude-code-router
-      - ./config/.vscode:/workspace/.vscode:ro
-      - ./config/.claude:/workspace/.claude:ro
+      # AI 工具配置 (可选：如需自定义 CCR 配置)
+      # - ./config/.claude-code-router:/root/.claude-code-router
 
       # 工作目录（持久化数据）
       - ./data:/workspace

@@ -34,16 +34,22 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     update-locale LANG=en_US.UTF-8
 
 # ============================================
-# 阶段2: 安装 Node.js
+# 阶段2: 安装 nvm 和 Node.js
 # ============================================
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - && \
-    apt-get install -y nodejs
+ENV NVM_DIR=/root/.nvm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm install ${NODE_MAJOR} && \
+    nvm alias default ${NODE_MAJOR} && \
+    nvm use default && \
+    # Create a symlink to make node available without sourcing nvm
+    ln -s "$(which node)" /usr/local/bin/node && \
+    ln -s "$(which npm)" /usr/local/bin/npm && \
+    ln -s "$(which npx)" /usr/local/bin/npx
 
 # 安装 pnpm
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm install -g pnpm
+RUN . "$NVM_DIR/nvm.sh" && npm install -g pnpm && \
+    ln -s "$(which pnpm)" /usr/local/bin/pnpm
 
 # ============================================
 # 阶段3: 安装 code-server
@@ -132,6 +138,51 @@ COPY xdg-open pip /usr/local/bin/
 RUN chmod +x /usr/local/bin/xdg-open /usr/local/bin/pip
 
 # ============================================
+# 阶段8.1: 创建入口点脚本和默认配置
+# ============================================
+RUN mkdir -p /root/.config/code-server && \
+    cat > /usr/bin/entrypoint.sh << 'ENTRYPOINT_EOF'
+#!/bin/bash
+set -eu
+
+echo "Starting Code-Server development environment..."
+
+# Initialize nvm (for compatibility with blade-code-server users)
+if [ -s "/root/.nvm/nvm.sh" ]; then
+    echo "Loading nvm environment..."
+    . /root/.nvm/nvm.sh
+fi
+
+# Start CCR (Claude Code Router) in background
+echo "Starting CCR (Claude Code Router)..."
+ccr ui &
+
+# Wait a moment for CCR to start
+sleep 2
+
+echo "CCR started on port 3456"
+echo "Access CCR UI at: http://localhost:3456/ui"
+
+# Start code-server
+echo "Starting code-server..."
+exec code-server \
+    --bind-addr 0.0.0.0:8080 \
+    --config /root/.config/code-server/config.yaml \
+    --user-data-dir /root/.local/share/code-server \
+    --extensions-dir /root/.local/share/code-server/extensions \
+    /workspace
+ENTRYPOINT_EOF
+
+RUN cat > /root/.config/code-server/config.yaml << 'CONFIG_EOF'
+bind-addr: 0.0.0.0:8080
+auth: password
+password: "bladeai2025"
+cert: false
+CONFIG_EOF
+
+RUN chmod +x /usr/bin/entrypoint.sh
+
+# ============================================
 # 阶段9: 打包项目文档（离线环境支持）
 # ============================================
 COPY . /tmp/code-server-docs/
@@ -166,4 +217,4 @@ EXPOSE 8080 3456
 
 # 设置启动命令
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/bin/bash", "/config/entrypoint.sh"]
+CMD ["/bin/bash", "/usr/bin/entrypoint.sh"]
