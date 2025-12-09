@@ -9,7 +9,7 @@ EXTENSIONS=(
     "ms-python.python"
     "ms-python.debugpy"
     "ms-python.vscode-python-envs"
-    "ms-pyright.pyright"
+    "detachhead.basedpyright"
 
     # Code quality
     "charliermarsh.ruff"

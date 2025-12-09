@@ -3,7 +3,6 @@ services:
     image: ghcr.io/so2liu/code-server-dev:latest
     container_name: code-server-dev
     privileged: true
-    user: coder
 
     environment:
       # CCR (Claude Code Router) 配置
@@ -19,7 +18,7 @@ services:
       - ./config/entrypoint.sh:/config/entrypoint.sh:ro
 
       # AI 工具配置
-      - ./config/.claude-code-router:/home/coder/.claude-code-router
+      - ./config/.claude-code-router:/root/.claude-code-router
       - ./config/.vscode:/workspace/.vscode:ro
       - ./config/.claude:/workspace/.claude:ro
 
