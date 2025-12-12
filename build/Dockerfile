@@ -24,20 +24,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     net-tools iputils-ping dnsutils telnet traceroute netcat-openbsd \
     # C/C++ 编译工具链
     build-essential gcc g++ gdb cmake make automake autoconf libtool pkg-config \
-    # gRPC 和 Protobuf 依赖
-    libgrpc-dev libgrpc++-dev libprotobuf-dev protobuf-compiler protobuf-compiler-grpc \
-    libssl-dev libcurl4-openssl-dev libc-ares-dev \
-    # gRPC 额外依赖
-    libabsl-dev \
-    libre2-dev \
-    libz-dev zlib1g-dev \
-    # HTTP/2 相关 (gRPC 基于 HTTP/2)
-    libnghttp2-dev \
-    # 序列化相关 (可能用到的其他格式)
-    libflatbuffers-dev flatbuffers-compiler \
-    libjsoncpp-dev nlohmann-json3-dev \
-    # 多语言 gRPC 支持
-    python3-grpcio python3-grpc-tools \
     # Python 环境
     python3 python3-pip python3-dev python3-venv \
     # 其他工具
@@ -46,12 +32,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # 配置语言环境
     locale-gen en_US.UTF-8 && \
     update-locale LANG=en_US.UTF-8
-
-# ============================================
-# 阶段1.1: 安装 grpcurl (不在 apt 仓库中)
-# ============================================
-RUN GRPCURL_VERSION=1.9.1 && \
-    curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin grpcurl
 
 # ============================================
 # 阶段2: 安装 nvm 和 Node.js
@@ -226,6 +206,28 @@ RUN chmod +x /tmp/install-extensions.sh && \
 # ============================================
 RUN mkdir -p /root/.local/share/code-server/User && \
     echo '{"vim.disableExtension": true}' > /root/.local/share/code-server/User/settings.json
+
+# ============================================
+# 阶段12: 安装 gRPC 和 Protobuf 开发依赖
+# ============================================
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
+    # gRPC 和 Protobuf 核心
+    libgrpc-dev libgrpc++-dev libprotobuf-dev protobuf-compiler protobuf-compiler-grpc \
+    # gRPC 依赖库
+    libssl-dev libcurl4-openssl-dev libc-ares-dev libabsl-dev libre2-dev \
+    libz-dev zlib1g-dev libnghttp2-dev \
+    # 序列化相关
+    libflatbuffers-dev flatbuffers-compiler libjsoncpp-dev nlohmann-json3-dev \
+    # Python gRPC
+    python3-grpcio python3-grpc-tools
+
+# ============================================
+# 阶段12.1: 安装 grpcurl (不在 apt 仓库中)
+# ============================================
+RUN GRPCURL_VERSION=1.9.1 && \
+    curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin grpcurl
 
 # ============================================
 # 最终配置
