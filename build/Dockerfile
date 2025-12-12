@@ -230,6 +230,13 @@ RUN GRPCURL_VERSION=1.9.1 && \
     curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin grpcurl
 
 # ============================================
+# 阶段13: 安装 grpcio (pip 最新版本)
+# ============================================
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv pip install --system --break-system-packages \
+    grpcio
+
+# ============================================
 # 最终配置
 # ============================================
 WORKDIR /workspace
