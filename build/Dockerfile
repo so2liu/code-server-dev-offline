@@ -24,6 +24,22 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     net-tools iputils-ping dnsutils telnet traceroute netcat-openbsd \
     # C/C++ 编译工具链
     build-essential gcc g++ gdb cmake make automake autoconf libtool pkg-config \
+    # gRPC 和 Protobuf 依赖
+    libgrpc-dev libgrpc++-dev libprotobuf-dev protobuf-compiler protobuf-compiler-grpc \
+    libssl-dev libcurl4-openssl-dev libcares-dev \
+    # gRPC 额外依赖
+    libabsl-dev \
+    libre2-dev \
+    libz-dev zlib1g-dev \
+    # gRPC 调试和测试工具
+    grpcurl \
+    # HTTP/2 相关 (gRPC 基于 HTTP/2)
+    libnghttp2-dev \
+    # 序列化相关 (可能用到的其他格式)
+    libflatbuffers-dev flatbuffers-compiler \
+    libjsoncpp-dev nlohmann-json3-dev \
+    # 多语言 gRPC 支持
+    python3-grpcio python3-grpc-tools \
     # Python 环境
     python3 python3-pip python3-dev python3-venv \
     # 其他工具
