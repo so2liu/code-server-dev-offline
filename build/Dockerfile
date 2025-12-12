@@ -26,13 +26,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     build-essential gcc g++ gdb cmake make automake autoconf libtool pkg-config \
     # gRPC 和 Protobuf 依赖
     libgrpc-dev libgrpc++-dev libprotobuf-dev protobuf-compiler protobuf-compiler-grpc \
-    libssl-dev libcurl4-openssl-dev libcares-dev \
+    libssl-dev libcurl4-openssl-dev libc-ares-dev \
     # gRPC 额外依赖
     libabsl-dev \
     libre2-dev \
     libz-dev zlib1g-dev \
-    # gRPC 调试和测试工具
-    grpcurl \
     # HTTP/2 相关 (gRPC 基于 HTTP/2)
     libnghttp2-dev \
     # 序列化相关 (可能用到的其他格式)
@@ -48,6 +46,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # 配置语言环境
     locale-gen en_US.UTF-8 && \
     update-locale LANG=en_US.UTF-8
+
+# ============================================
+# 阶段1.1: 安装 grpcurl (不在 apt 仓库中)
+# ============================================
+RUN GRPCURL_VERSION=1.9.1 && \
+    curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin grpcurl
 
 # ============================================
 # 阶段2: 安装 nvm 和 Node.js
