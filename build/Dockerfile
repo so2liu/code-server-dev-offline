@@ -231,6 +231,13 @@ RUN --mount=type=cache,target=/home/coder/.cache/uv,sharing=locked \
     grpcio
 
 # ============================================
+# 阶段14: 安装 docxtpl (Word 模板处理)
+# ============================================
+RUN --mount=type=cache,target=/home/coder/.cache/uv,sharing=locked \
+    uv pip install --system --break-system-packages \
+    docxtpl
+
+# ============================================
 # 最终配置
 # ============================================
 COPY entrypoint.sh /usr/bin/entrypoint.sh

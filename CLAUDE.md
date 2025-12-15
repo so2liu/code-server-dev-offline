@@ -53,8 +53,9 @@ The `build/Dockerfile` uses a layered caching strategy. Layers are ordered from 
 
 ## Adding New Dependencies
 
+**Important**: Always add new dependencies as a new stage at the end of `build/Dockerfile` (before "最终配置") to maximize cache reuse. Never modify existing stages.
+
 ### System packages (apt)
-Add to a new RUN stage at the end of `build/Dockerfile`:
 ```dockerfile
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -62,7 +63,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 ```
 
 ### Python packages
-Add to Stage 6 in `build/Dockerfile` (the `uv pip install` block).
+```dockerfile
+RUN --mount=type=cache,target=/home/coder/.cache/uv,sharing=locked \
+    uv pip install --system --break-system-packages \
+    <packages>
+```
+
+### npm packages
+```dockerfile
+RUN npm install -g <packages>
+```
 
 ### VS Code extensions
 Add extension ID to the `EXTENSIONS` array in `build/install-extensions.sh`.
