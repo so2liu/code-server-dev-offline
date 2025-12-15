@@ -34,10 +34,37 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     update-locale LANG=en_US.UTF-8
 
 # ============================================
+# Stage 1.1: Create non-root user and install fixuid + gosu
+# ============================================
+# Remove existing user/group with UID/GID 1000 if any, then create coder user
+RUN (getent passwd 1000 | cut -d: -f1 | xargs -r userdel -r 2>/dev/null || true) && \
+    (getent group 1000 | cut -d: -f1 | xargs -r groupdel 2>/dev/null || true) && \
+    groupadd -g 1000 coder && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash coder && \
+    echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
+
+# Install fixuid for UID/GID remapping and gosu for user switching
+RUN ARCH="$(dpkg --print-architecture)" && \
+    curl -fsSL "https://github.com/boxboat/fixuid/releases/download/v0.6.0/fixuid-0.6.0-linux-${ARCH}.tar.gz" | \
+    tar -C /usr/local/bin -xzf - && \
+    chmod 4755 /usr/local/bin/fixuid && \
+    mkdir -p /etc/fixuid && \
+    printf "user: coder\ngroup: coder\npaths:\n  - /home/coder\n  - /workspace\n" > /etc/fixuid/config.yml && \
+    curl -fsSL "https://github.com/tianon/gosu/releases/download/1.17/gosu-${ARCH}" -o /usr/local/bin/gosu && \
+    chmod +x /usr/local/bin/gosu
+
+# Update fixuid config to only include /workspace (not /home/coder)
+# This prevents fixuid from changing ownership of home directory files
+RUN mkdir -p /workspace && \
+    chown coder:coder /workspace && \
+    printf "user: coder\ngroup: coder\npaths:\n  - /workspace\n" > /etc/fixuid/config.yml
+
+# ============================================
 # 阶段2: 安装 nvm 和 Node.js
 # ============================================
-ENV NVM_DIR=/root/.nvm
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && \
+ENV NVM_DIR=/home/coder/.nvm
+RUN mkdir -p "$NVM_DIR" && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && \
     . "$NVM_DIR/nvm.sh" && \
     nvm install ${NODE_MAJOR} && \
     nvm alias default ${NODE_MAJOR} && \
@@ -59,19 +86,20 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version=${CODE_SE
 # ============================================
 # 阶段4: 安装全局 npm 包
 # ============================================
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+RUN --mount=type=cache,target=/home/coder/.npm,sharing=locked \
     npm install -g @anthropic-ai/claude-code @musistudio/claude-code-router opencode-ai
 
 # ============================================
 # 阶段5: 安装 uv
 # ============================================
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    mv /root/.local/bin/uv* /usr/local/bin/
+    mv /root/.local/bin/uv* /usr/local/bin/ && \
+    rm -rf /root/.local
 
 # ============================================
 # 阶段6: 安装 Python 依赖
 # ============================================
-RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+RUN --mount=type=cache,target=/home/coder/.cache/uv,sharing=locked \
     uv pip install --system --break-system-packages \
     loguru==0.7.3 \
     matplotlib==3.10.1 \
@@ -135,52 +163,18 @@ RUN python3 /tmp/download-tiktoken-models.py && \
 # 阶段8: 复制辅助脚本
 # ============================================
 COPY xdg-open pip /usr/local/bin/
-RUN chmod +x /usr/local/bin/xdg-open /usr/local/bin/pip
+RUN chmod 755 /usr/local/bin/xdg-open /usr/local/bin/pip
 
 # ============================================
-# 阶段8.1: 创建入口点脚本和默认配置
+# 阶段8.1: 创建默认配置
 # ============================================
-RUN mkdir -p /root/.config/code-server && \
-    cat > /usr/bin/entrypoint.sh << 'ENTRYPOINT_EOF'
-#!/bin/bash
-set -eu
-
-echo "Starting Code-Server development environment..."
-
-# Initialize nvm (for compatibility with blade-code-server users)
-if [ -s "/root/.nvm/nvm.sh" ]; then
-    echo "Loading nvm environment..."
-    . /root/.nvm/nvm.sh
-fi
-
-# Start CCR (Claude Code Router) in background
-echo "Starting CCR (Claude Code Router)..."
-ccr ui &
-
-# Wait a moment for CCR to start
-sleep 2
-
-echo "CCR started on port 3456"
-echo "Access CCR UI at: http://localhost:3456/ui"
-
-# Start code-server
-echo "Starting code-server..."
-exec code-server \
-    --bind-addr 0.0.0.0:8080 \
-    --config /root/.config/code-server/config.yaml \
-    --user-data-dir /root/.local/share/code-server \
-    --extensions-dir /root/.local/share/code-server/extensions \
-    /workspace
-ENTRYPOINT_EOF
-
-RUN cat > /root/.config/code-server/config.yaml << 'CONFIG_EOF'
+RUN mkdir -p /home/coder/.config/code-server && \
+    cat > /home/coder/.config/code-server/config.yaml << 'CONFIG_EOF'
 bind-addr: 0.0.0.0:8080
 auth: password
 password: "bladeai2025"
 cert: false
 CONFIG_EOF
-
-RUN chmod +x /usr/bin/entrypoint.sh
 
 # ============================================
 # 阶段9: 打包项目文档（离线环境支持）
@@ -204,8 +198,8 @@ RUN chmod +x /tmp/install-extensions.sh && \
 # ============================================
 # 阶段11: 配置 code-server user settings
 # ============================================
-RUN mkdir -p /root/.local/share/code-server/User && \
-    echo '{"vim.disableExtension": true}' > /root/.local/share/code-server/User/settings.json
+RUN mkdir -p /home/coder/.local/share/code-server/User && \
+    echo '{"vim.disableExtension": true}' > /home/coder/.local/share/code-server/User/settings.json
 
 # ============================================
 # 阶段12: 安装 gRPC 和 Protobuf 开发依赖
@@ -232,18 +226,24 @@ RUN GRPCURL_VERSION=1.9.1 && \
 # ============================================
 # 阶段13: 安装 grpcio (pip 最新版本)
 # ============================================
-RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+RUN --mount=type=cache,target=/home/coder/.cache/uv,sharing=locked \
     uv pip install --system --break-system-packages \
     grpcio
 
 # ============================================
 # 最终配置
 # ============================================
+COPY entrypoint.sh /usr/bin/entrypoint.sh
+RUN chmod +x /usr/bin/entrypoint.sh && \
+    chown -R coder:coder /home/coder
+
 WORKDIR /workspace
+
+# NOTE: Do NOT set USER here - fixuid needs root to run first, then drops privileges
 
 # 暴露端口
 EXPOSE 8080 3456
 
 # 设置启动命令
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/bin/bash", "/usr/bin/entrypoint.sh"]
+CMD ["/usr/bin/entrypoint.sh"]

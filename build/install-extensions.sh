@@ -4,6 +4,10 @@ set -e
 # VSCode extensions installation script for code-server
 # This script installs extensions directly into the code-server extensions directory
 
+# Set extensions directory to coder user's location
+EXTENSIONS_DIR="/home/coder/.local/share/code-server/extensions"
+mkdir -p "$EXTENSIONS_DIR"
+
 EXTENSIONS=(
     # Python development
     "ms-python.python"
@@ -38,7 +42,7 @@ echo "Installing VSCode extensions for code-server..."
 
 for extension in "${EXTENSIONS[@]}"; do
     echo "Installing: $extension"
-    code-server --install-extension "$extension" || echo "Failed to install $extension, continuing..."
+    code-server --extensions-dir "$EXTENSIONS_DIR" --install-extension "$extension" || echo "Failed to install $extension, continuing..."
 done
 
 echo "Extension installation complete!"

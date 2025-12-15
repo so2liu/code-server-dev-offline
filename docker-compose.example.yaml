@@ -2,7 +2,6 @@ services:
   code-server:
     image: ghcr.io/so2liu/code-server-dev:latest
     container_name: code-server-dev
-    privileged: true
 
     environment:
       # CCR (Claude Code Router) 配置
@@ -12,7 +11,7 @@ services:
 
     volumes:
       # AI 工具配置 (可选：如需自定义 CCR 配置)
-      # - ./config/.claude-code-router:/root/.claude-code-router
+      # - ./config/.claude-code-router:/home/coder/.claude-code-router
 
       # 工作目录（持久化数据）
       - ./data:/workspace
