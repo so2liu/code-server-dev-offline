@@ -12,7 +12,7 @@
   - 常用命令工具 (git, vim, tree, jq, rsync, lsof, strace, socat, pandoc 等)
 - **Code-Server**: 4.106.2
   - 通过浏览器访问 (端口 8080)
-  - 预装常用插件 (Python, GitLens, Ruff, SQLTools, vim, React, Cline)
+  - 预装常用插件 (Python, GitLens, Ruff, SQLTools, YAML, vim, React, Cline)
 - **AI 工具**:
   - Claude Code CLI
   - CCR (Claude Code Router) - 支持多 AI 提供商路由
@@ -133,6 +133,9 @@ code-server-dev-offline/
 - **React 开发**:
   - ES7+ React/Redux Snippets (dsznajder.es7-react-js-snippets)
   - Prettier (esbenp.prettier-vscode)
+
+- **YAML**:
+  - YAML (redhat.vscode-yaml)
 
 - **其他**:
   - Vim (vscodevim.vim)

@@ -238,6 +238,11 @@ RUN --mount=type=cache,target=/home/coder/.cache/uv,sharing=locked \
     docxtpl
 
 # ============================================
+# 阶段15: 安装 YAML 扩展 (VSCode)
+# ============================================
+RUN code-server --install-extension redhat.vscode-yaml
+
+# ============================================
 # 最终配置
 # ============================================
 COPY entrypoint.sh /usr/bin/entrypoint.sh
